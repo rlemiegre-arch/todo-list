@@ -1,0 +1,1003 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Mes tâches</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #F7F4EF; --surface: #FFFDF9; --border: #E2DDD5;
+    --ink: #1A1814; --ink-muted: #7A746A; --ink-faint: #C4BFB7;
+    --accent: #C9613A; --done-bg: #EDEAE4; --radius-sm: 8px;
+  }
+
+  body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--ink); min-height: 100vh; display: flex; }
+
+  /* ── LOGIN SCREEN ── */
+  #login-screen {
+    display: none; position: fixed; inset: 0; z-index: 300;
+    background: var(--bg); align-items: center; justify-content: center;
+  }
+  #login-screen.visible { display: flex; }
+  .login-box {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 18px; padding: 40px 36px; width: 360px; text-align: center;
+  }
+  .login-logo { font-family: 'DM Serif Display', serif; font-size: 28px; margin-bottom: 6px; }
+  .login-logo span { color: var(--accent); }
+  .login-sub { font-size: 14px; color: var(--ink-muted); margin-bottom: 32px; }
+  .login-divider { display: flex; align-items: center; gap: 12px; margin: 20px 0; color: var(--ink-faint); font-size: 12px; }
+  .login-divider::before, .login-divider::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+  .btn-google {
+    width: 100%; padding: 13px; border: 1px solid var(--border); border-radius: var(--radius-sm);
+    background: var(--surface); color: var(--ink); font-family: 'DM Sans', sans-serif;
+    font-size: 14px; font-weight: 500; cursor: pointer; display: flex; align-items: center;
+    justify-content: center; gap: 10px; transition: background .15s;
+  }
+  .btn-google:hover { background: var(--bg); }
+
+  .login-input {
+    width: 100%; padding: 12px 14px; border: 1px solid var(--border); border-radius: var(--radius-sm);
+    font-family: 'DM Sans', sans-serif; font-size: 14px; background: var(--bg);
+    color: var(--ink); outline: none; margin-bottom: 10px;
+  }
+  .login-input:focus { border-color: var(--accent); }
+
+  .btn-primary {
+    width: 100%; padding: 13px; border: none; border-radius: var(--radius-sm);
+    background: var(--accent); color: #fff; font-family: 'DM Sans', sans-serif;
+    font-size: 14px; font-weight: 500; cursor: pointer; transition: background .2s; margin-bottom: 10px;
+  }
+  .btn-primary:hover { background: #b55530; }
+
+  .login-toggle { font-size: 13px; color: var(--ink-muted); cursor: pointer; }
+  .login-toggle span { color: var(--accent); text-decoration: underline; }
+  .login-error { font-size: 13px; color: #dc2626; margin-bottom: 10px; min-height: 18px; }
+
+  /* ── USER BAR in sidebar ── */
+  .user-bar {
+    margin-top: auto; padding: 14px 20px;
+    border-top: 1px solid var(--border);
+    display: flex; align-items: center; gap: 10px;
+  }
+  .user-avatar {
+    width: 32px; height: 32px; border-radius: 50%;
+    background: var(--accent); color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px; font-weight: 600; flex-shrink: 0; overflow: hidden;
+  }
+  .user-avatar img { width: 100%; height: 100%; object-fit: cover; }
+  .user-name { flex: 1; font-size: 13px; color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .btn-logout {
+    background: none; border: none; cursor: pointer; color: var(--ink-faint);
+    font-size: 18px; padding: 2px; line-height: 1; transition: color .15s;
+  }
+  .btn-logout:hover { color: var(--accent); }
+
+  /* ── LOADING ── */
+  #loading-screen {
+    display: none; position: fixed; inset: 0; z-index: 400;
+    background: var(--bg); align-items: center; justify-content: center;
+    font-family: 'DM Serif Display', serif; font-size: 22px; color: var(--ink-muted);
+  }
+  #loading-screen.visible { display: flex; }
+
+  /* ── SIDEBAR ── */
+  .sidebar {
+    width: 240px; min-height: 100vh; background: var(--surface);
+    border-right: 1px solid var(--border); display: flex; flex-direction: column;
+    padding: 28px 0 0; flex-shrink: 0;
+  }
+  .sidebar-logo { font-family: 'DM Serif Display', serif; font-size: 20px; color: var(--ink); padding: 0 20px 24px; border-bottom: 1px solid var(--border); }
+  .sidebar-logo span { color: var(--accent); }
+  .sidebar-section { padding: 18px 20px 8px; font-size: 10px; letter-spacing: .12em; text-transform: uppercase; color: var(--ink-faint); font-weight: 500; }
+
+  .list-item { display: flex; align-items: center; gap: 10px; padding: 9px 20px; cursor: pointer; font-size: 14px; color: var(--ink-muted); transition: background .15s, color .15s; position: relative; }
+  .list-item:hover { background: var(--bg); color: var(--ink); }
+  .list-item.active { background: var(--bg); color: var(--ink); font-weight: 500; }
+  .list-item.active::before { content: ''; position: absolute; left: 0; top: 5px; bottom: 5px; width: 3px; background: var(--accent); border-radius: 0 3px 3px 0; }
+  .list-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--ink-faint); flex-shrink: 0; transition: background .15s; }
+  .list-item.active .list-dot { background: var(--accent); }
+  .list-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .list-count { font-size: 11px; color: var(--ink-faint); background: var(--done-bg); border-radius: 99px; padding: 1px 7px; flex-shrink: 0; }
+  .list-del { background: none; border: none; cursor: pointer; color: var(--ink-faint); padding: 2px; border-radius: 4px; display: none; align-items: center; font-size: 13px; line-height: 1; }
+  .list-item:hover .list-del { display: flex; }
+  .list-del:hover { color: var(--accent); }
+
+  .new-list-btn { margin: 14px 20px 0; padding: 9px 14px; background: var(--accent); color: #fff; border: none; border-radius: var(--radius-sm); font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 500; cursor: pointer; display: flex; align-items: center; gap: 7px; transition: background .2s, transform .1s; }
+  .new-list-btn:hover { background: #b55530; }
+  .new-list-btn:active { transform: scale(.98); }
+
+  /* ── MODAL ── */
+  .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(26,24,20,.38); z-index: 100; align-items: center; justify-content: center; }
+  .modal-overlay.open { display: flex; }
+  .modal { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 28px; width: 340px; }
+  .modal h2 { font-family: 'DM Serif Display', serif; font-size: 22px; font-weight: 400; margin-bottom: 16px; color: var(--ink); }
+  .modal input { width: 100%; padding: 12px 14px; border: 1px solid var(--border); border-radius: var(--radius-sm); font-family: 'DM Sans', sans-serif; font-size: 15px; background: var(--bg); color: var(--ink); outline: none; margin-bottom: 16px; }
+  .modal input:focus { border-color: var(--accent); }
+  .modal-btns { display: flex; gap: 8px; justify-content: flex-end; }
+  .btn-cancel { padding: 9px 18px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: transparent; color: var(--ink-muted); font-family: 'DM Sans', sans-serif; font-size: 14px; cursor: pointer; }
+  .btn-confirm { padding: 9px 18px; border: none; border-radius: var(--radius-sm); background: var(--accent); color: #fff; font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 500; cursor: pointer; transition: background .2s; }
+  .btn-confirm:hover { background: #b55530; }
+
+  /* ── MAIN ── */
+  .main { flex: 1; padding: 48px 40px; max-width: 640px; }
+  header { margin-bottom: 32px; }
+  .date { font-size: 12px; font-weight: 500; letter-spacing: .12em; text-transform: uppercase; color: var(--ink-muted); margin-bottom: 8px; }
+  h1 { font-family: 'DM Serif Display', serif; font-size: 38px; font-weight: 400; line-height: 1.1; color: var(--ink); }
+  h1 span { color: var(--accent); }
+
+  .stats-row { display: flex; gap: 12px; margin-top: 20px; }
+  .stat { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 10px 16px; flex: 1; text-align: center; }
+  .stat-num { font-family: 'DM Serif Display', serif; font-size: 24px; color: var(--ink); display: block; }
+  .stat-label { font-size: 11px; color: var(--ink-muted); letter-spacing: .08em; text-transform: uppercase; }
+
+  .progress-bar { height: 4px; background: var(--border); border-radius: 99px; margin-bottom: 28px; overflow: hidden; }
+  .progress-fill { height: 100%; background: var(--accent); border-radius: 99px; transition: width .4s ease; }
+
+  .add-section { display: flex; gap: 8px; margin-bottom: 16px; }
+  .add-section input { flex: 1; padding: 13px 16px; border: 1px solid var(--border); border-radius: var(--radius-sm); font-family: 'DM Sans', sans-serif; font-size: 15px; background: var(--surface); color: var(--ink); outline: none; transition: border-color .2s; }
+  .add-section input::placeholder { color: var(--ink-faint); }
+  .add-section input:focus { border-color: var(--accent); }
+  .priority-select { padding: 0 10px; height: 46px; border: 1px solid var(--border); border-radius: var(--radius-sm); font-family: 'DM Sans', sans-serif; font-size: 13px; background: var(--surface); color: var(--ink-muted); cursor: pointer; outline: none; flex-shrink: 0; }
+  .priority-select:focus { border-color: var(--accent); }
+  .add-section button { padding: 13px 20px; background: var(--accent); color: #fff; border: none; border-radius: var(--radius-sm); font-size: 22px; cursor: pointer; transition: background .2s, transform .1s; line-height: 1; flex-shrink: 0; }
+  .add-section button:hover { background: #b55530; }
+  .add-section button:active { transform: scale(.97); }
+
+  .filters-row { display: flex; gap: 6px; margin-bottom: 10px; flex-wrap: wrap; }
+  .filter-btn { font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 500; padding: 6px 16px; border-radius: 99px; border: 1px solid var(--border); background: transparent; color: var(--ink-muted); cursor: pointer; transition: all .2s; }
+  .filter-btn.active { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+
+  .prio-filter-row { display: flex; gap: 6px; margin-bottom: 20px; flex-wrap: wrap; }
+  .prio-btn { font-family: 'DM Sans', sans-serif; font-size: 12px; font-weight: 500; padding: 4px 13px; border-radius: 99px; border: 1px solid var(--border); background: transparent; color: var(--ink-muted); cursor: pointer; transition: all .15s; }
+  .prio-btn.active-all    { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+  .prio-btn.active-haute  { background: #FEE2E2; color: #991B1B; border-color: #FCA5A5; }
+  .prio-btn.active-normale { background: #FEF3C7; color: #92400E; border-color: #FCD34D; }
+  .prio-btn.active-basse  { background: #DCFCE7; color: #166534; border-color: #86EFAC; }
+
+  .task-list { display: flex; flex-direction: column; gap: 8px; }
+  .task-item { display: flex; align-items: center; gap: 12px; padding: 12px 15px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); transition: opacity .25s, background .2s; animation: slideIn .2s ease; }
+  @keyframes slideIn { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: translateY(0); } }
+  .task-item.done { opacity: .5; background: var(--done-bg); }
+  .task-item.done .task-text { text-decoration: line-through; color: var(--ink-muted); }
+  .task-item.prio-haute  { border-left: 3px solid #F87171; }
+  .task-item.prio-normale { border-left: 3px solid #FCD34D; }
+  .task-item.prio-basse  { border-left: 3px solid #6EE7B7; }
+
+  .checkbox { width: 22px; height: 22px; border-radius: 6px; border: 1.5px solid var(--border); background: transparent; cursor: pointer; flex-shrink: 0; display: flex; align-items: center; justify-content: center; transition: all .2s; }
+  .checkbox.checked { background: var(--accent); border-color: var(--accent); }
+  .checkbox svg { display: none; }
+  .checkbox.checked svg { display: block; }
+
+  .task-text { flex: 1; font-size: 15px; color: var(--ink); line-height: 1.4; word-break: break-word; }
+
+  .badge { font-size: 11px; font-weight: 500; padding: 2px 8px; border-radius: 99px; flex-shrink: 0; }
+  .badge-haute  { background: #FEE2E2; color: #991B1B; }
+  .badge-normale { background: #FEF3C7; color: #92400E; }
+  .badge-basse  { background: #DCFCE7; color: #166534; }
+
+  .del-btn { background: none; border: none; cursor: pointer; color: var(--ink-faint); padding: 4px; border-radius: 4px; display: flex; align-items: center; opacity: 0; transition: opacity .15s, color .15s; }
+  .task-item:hover .del-btn { opacity: 1; }
+  .del-btn:hover { color: var(--accent); }
+
+  .empty { text-align: center; padding: 48px 0; color: var(--ink-faint); font-family: 'DM Serif Display', serif; font-size: 18px; }
+
+  .sync-status { font-size: 11px; color: var(--ink-faint); margin-top: 12px; min-height: 16px; }
+
+  footer { margin-top: 32px; font-size: 12px; color: var(--ink-faint); }
+
+  /* ── MOBILE ── */
+  .sidebar-toggle { display: none; position: fixed; top: 14px; left: 14px; z-index: 200; width: 38px; height: 38px; border-radius: 10px; background: var(--surface); border: 1px solid var(--border); cursor: pointer; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,.08); }
+  .sidebar-overlay { display: none; position: fixed; inset: 0; z-index: 149; background: rgba(26,24,20,.35); }
+
+  @media (max-width: 640px) {
+    body { display: block; overflow-x: hidden; }
+    .sidebar-toggle { display: flex; }
+    .sidebar { position: fixed; top: 0; left: 0; z-index: 150; height: 100vh; width: 260px; transform: translateX(-100%); transition: transform .28s ease; box-shadow: 4px 0 20px rgba(0,0,0,.1); }
+    .sidebar.open { transform: translateX(0); }
+    .sidebar-overlay.open { display: block; }
+    .main { padding: 72px 20px 40px; max-width: 100%; width: 100%; }
+    h1 { font-size: 30px; }
+    .add-section { flex-wrap: wrap; }
+    .add-section input { min-width: 0; }
+    .priority-select { width: 100%; }
+    .add-section button { flex: 1; }
+    .del-btn { opacity: 1; }
+  }
+</style>
+</head>
+<body>
+
+<!-- LOADING -->
+<div id="loading-screen" class="visible">Chargement…</div>
+
+<!-- LOGIN -->
+<div id="login-screen">
+  <div class="login-box">
+    <div class="login-logo">✦ Mes <span>tâches</span></div>
+    <p class="login-sub">Connectez-vous pour sauvegarder vos listes</p>
+
+    <button class="btn-google" id="btn-google-login">
+      <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.34-8.16 2.34-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
+      Continuer avec Google
+    </button>
+
+    <div class="login-divider">ou</div>
+
+    <div id="login-error" class="login-error"></div>
+    <input class="login-input" type="email" id="login-email" placeholder="Adresse e-mail" />
+    <input class="login-input" type="password" id="login-password" placeholder="Mot de passe" />
+    <button class="btn-primary" id="btn-email-login">Se connecter</button>
+    <p class="login-toggle">Pas de compte ? <span id="toggle-register">Créer un compte</span></p>
+  </div>
+</div>
+
+<!-- SIDEBAR TOGGLE (mobile) -->
+<button class="sidebar-toggle" id="sidebar-toggle" aria-label="Menu">
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 12h18M3 6h18M3 18h18"/></svg>
+</button>
+<div class="sidebar-overlay" id="sidebar-overlay"></div>
+
+<!-- SIDEBAR -->
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-logo">✦ Mes <span>listes</span></div>
+  <div class="sidebar-section">Listes sauvegardées</div>
+  <div id="lists-menu"></div>
+  <button class="new-list-btn" id="open-modal-btn">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+    Nouvelle liste
+  </button>
+  <div class="user-bar" id="user-bar">
+    <div class="user-avatar" id="user-avatar">?</div>
+    <span class="user-name" id="user-name">…</span>
+    <button class="btn-logout" id="btn-logout" title="Se déconnecter">↪</button>
+  </div>
+</aside>
+
+<!-- MAIN -->
+<main class="main">
+  <header>
+    <p class="date" id="today-date"></p>
+    <h1 id="list-title">Ma <span>liste</span></h1>
+    <div class="stats-row">
+      <div class="stat"><span class="stat-num" id="stat-total">0</span><span class="stat-label">Total</span></div>
+      <div class="stat"><span class="stat-num" id="stat-done">0</span><span class="stat-label">Faites</span></div>
+      <div class="stat"><span class="stat-num" id="stat-left">0</span><span class="stat-label">Restantes</span></div>
+    </div>
+  </header>
+
+  <div class="progress-bar"><div class="progress-fill" id="progress"></div></div>
+
+  <div class="add-section">
+    <input type="text" id="new-task" placeholder="Ajouter une tâche…" />
+    <select class="priority-select" id="new-priority">
+      <option value="normale">⬤ Normale</option>
+      <option value="haute">⬤ Haute</option>
+      <option value="basse">⬤ Basse</option>
+    </select>
+    <button id="add-btn">+</button>
+  </div>
+
+  <div class="filters-row">
+    <button class="filter-btn active" data-filter="all">Toutes</button>
+    <button class="filter-btn" data-filter="active">À faire</button>
+    <button class="filter-btn" data-filter="done">Faites</button>
+  </div>
+
+  <div class="prio-filter-row">
+    <button class="prio-btn active-all" data-prio="all">Toutes priorités</button>
+    <button class="prio-btn" data-prio="haute">🔴 Haute</button>
+    <button class="prio-btn" data-prio="normale">🟡 Normale</button>
+    <button class="prio-btn" data-prio="basse">🟢 Basse</button>
+  </div>
+
+  <div class="task-list" id="task-list"></div>
+  <div class="sync-status" id="sync-status"></div>
+  <footer id="footer-txt"></footer>
+</main>
+
+<!-- MODAL nouvelle liste -->
+<div class="modal-overlay" id="modal">
+  <div class="modal">
+    <h2>Nouvelle liste</h2>
+    <input type="text" id="modal-input" placeholder="Nom de la liste…" maxlength="40" />
+    <div class="modal-btns">
+      <button class="btn-cancel" id="modal-cancel">Annuler</button>
+      <button class="btn-confirm" id="modal-confirm">Créer</button>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+  import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+  import { getAuth, onAuthStateChanged, signInWithPopup, GoogleAuthProvider, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
+  import { getDatabase, ref, set, onValue } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js';
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyDW3eHxSI0aiJUxeds3vb6czAPcFh0pnSc",
+    authDomain: "mes-taches-ef9ed.firebaseapp.com",
+    databaseURL: "https://mes-taches-ef9ed-default-rtdb.europe-west1.firebasedatabase.app",
+    projectId: "mes-taches-ef9ed",
+    storageBucket: "mes-taches-ef9ed.firebasestorage.app",
+    messagingSenderId: "355276583041",
+    appId: "1:355276583041:web:4da5e965ebe4fcd9055d80"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db = getDatabase(app);
+
+  // ── STATE ──
+  const PRIO_ORDER = { haute: 0, normale: 1, basse: 2 };
+  const PRIO_LABEL = { haute: 'Haute', normale: 'Normale', basse: 'Basse' };
+  let state = { currentId: null, lists: [] };
+  let filter = 'all', prioFilter = 'all';
+  let currentUser = null;
+  let unsubscribeDB = null;
+  let saveTimeout = null;
+
+  // ── UTILS ──
+  function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  function currentList() { return state.lists.find(l => l.id === state.currentId); }
+
+  // ── ADDRESS DETECTION ──
+  const ADDR_TYPES = ['rue','ruelle','avenue','ave','boulevard','blvd','allée','allee','impasse','route','chemin','place','square','passage','cours','voie','quai','villa','résidence','residence','cité','cite','domaine','lotissement','hameau','rond-point','sentier','sente','montée','montee','descente','traverse','esplanade','promenade','parvis','mail','galerie','faubourg','fg','lieudit','lieu-dit','parc','chaussée','chaussee','port','digue','berge','levée','levee','clos','enclos','cour','carrière','carriere','venelle','drève','dreve','boucle','giratoire','bretelle','piste','rampe'].join('|');
+  const ADDR_RE = new RegExp('(\\d+[\\w,\\.\\-]*\\s+(?:' + ADDR_TYPES + ')[^\\n]{2,60})', 'gi');
+
+  function buildTaskNode(text) {
+    const span = document.createElement('span');
+    span.className = 'task-text';
+    const re = new RegExp(ADDR_RE.source, 'gi');
+    let last = 0, m;
+    while ((m = re.exec(text)) !== null) {
+      if (m.index > last) span.appendChild(document.createTextNode(text.slice(last, m.index)));
+      const a = document.createElement('a');
+      a.href = 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(m[0].trim());
+      a.target = '_blank'; a.rel = 'noopener noreferrer';
+      a.title = 'Voir sur Google Maps';
+      a.style.cssText = 'color:var(--accent);text-decoration:underline;text-underline-offset:3px;';
+      a.appendChild(document.createTextNode('📍 ' + m[0]));
+      span.appendChild(a);
+      last = re.lastIndex;
+    }
+    if (last < text.length) span.appendChild(document.createTextNode(text.slice(last)));
+    return span;
+  }
+
+  // ── REALTIME DATABASE SYNC ──
+  function userRef(uid) { return ref(db, 'users/' + uid); }
+
+  function saveToDB() {
+    if (!currentUser) return;
+    setSyncStatus('Sauvegarde…');
+    set(userRef(currentUser.uid), { state: JSON.stringify(state) })
+      .then(() => { setSyncStatus('✓ Sauvegardé'); setTimeout(() => setSyncStatus(''), 2000); })
+      .catch(() => setSyncStatus('⚠ Erreur de sauvegarde'));
+  }
+
+  function save() {
+    clearTimeout(saveTimeout);
+    saveTimeout = setTimeout(saveToDB, 800);
+  }
+
+  function setSyncStatus(msg) { document.getElementById('sync-status').textContent = msg; }
+
+  function listenToDB(uid) {
+    if (unsubscribeDB) unsubscribeDB();
+    const r = userRef(uid);
+    unsubscribeDB = onValue(r, snap => {
+      const data = snap.val();
+      if (data && data.state) {
+        const remote = JSON.parse(data.state);
+        if (remote) { state = remote; render(); }
+      }
+    });
+  }
+
+  // ── DATE ──
+  const days = ['Dimanche','Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi'];
+  const months = ['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre'];
+  const now = new Date();
+  document.getElementById('today-date').textContent = `${days[now.getDay()]} ${now.getDate()} ${months[now.getMonth()]} ${now.getFullYear()}`;
+
+  // ── RENDER ──
+  function renderSidebar() {
+    const menu = document.getElementById('lists-menu');
+    menu.innerHTML = state.lists.map(l => {
+      const remaining = (l.tasks || []).filter(t => !t.done).length;
+      return `<div class="list-item ${l.id === state.currentId ? 'active' : ''}" data-list-id="${l.id}">
+        <div class="list-dot"></div>
+        <span class="list-name">${esc(l.name)}</span>
+        ${remaining > 0 ? `<span class="list-count">${remaining}</span>` : ''}
+        ${state.lists.length > 1 ? `<button class="list-del" data-del-list="${l.id}" aria-label="Supprimer">✕</button>` : ''}
+      </div>`;
+    }).join('');
+  }
+
+  function renderMain() {
+    const list = currentList();
+    if (!list) return;
+    const words = list.name.split(' ');
+    const last = words.pop();
+    document.getElementById('list-title').innerHTML = (words.length ? esc(words.join(' ')) + ' ' : '') + `<span>${esc(last)}</span>`;
+    const tasks = list.tasks || [];
+    const done = tasks.filter(t => t.done).length;
+    const total = tasks.length;
+    document.getElementById('stat-total').textContent = total;
+    document.getElementById('stat-done').textContent = done;
+    document.getElementById('stat-left').textContent = total - done;
+    document.getElementById('progress').style.width = total ? Math.round(done / total * 100) + '%' : '0%';
+
+    let filtered = tasks.filter(t => {
+      const matchStatus = filter === 'all' ? true : filter === 'done' ? t.done : !t.done;
+      const matchPrio = prioFilter === 'all' ? true : (t.priority || 'normale') === prioFilter;
+      return matchStatus && matchPrio;
+    });
+    filtered = [...filtered].sort((a, b) => PRIO_ORDER[a.priority || 'normale'] - PRIO_ORDER[b.priority || 'normale']);
+
+    const taskList = document.getElementById('task-list');
+    taskList.innerHTML = '';
+    if (!filtered.length) {
+      const empty = document.createElement('div');
+      empty.className = 'empty'; empty.textContent = 'Aucune tâche ici ✦';
+      taskList.appendChild(empty); return;
+    }
+    filtered.forEach(t => {
+      const prio = t.priority || 'normale';
+      const item = document.createElement('div');
+      item.className = `task-item prio-${prio}${t.done ? ' done' : ''}`;
+      const cb = document.createElement('div');
+      cb.className = 'checkbox' + (t.done ? ' checked' : '');
+      cb.dataset.action = 'toggle'; cb.dataset.id = t.id;
+      cb.innerHTML = `<svg width="12" height="10" viewBox="0 0 12 10" fill="none"><path d="M1 5L4.5 8.5L11 1" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+      const textNode = buildTaskNode(t.text);
+      if (t.done) textNode.style.cssText += 'text-decoration:line-through;color:var(--ink-muted);';
+      const badge = document.createElement('span');
+      badge.className = `badge badge-${prio}`; badge.textContent = PRIO_LABEL[prio];
+      const del = document.createElement('button');
+      del.className = 'del-btn'; del.dataset.action = 'delete'; del.dataset.id = t.id;
+      del.setAttribute('aria-label', 'Supprimer');
+      del.innerHTML = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>`;
+      item.appendChild(cb); item.appendChild(textNode); item.appendChild(badge); item.appendChild(del);
+      taskList.appendChild(item);
+    });
+  }
+
+  function render() { renderSidebar(); renderMain(); }
+
+  // ── TASK ACTIONS ──
+  document.getElementById('task-list').addEventListener('click', e => {
+    const el = e.target.closest('[data-action]');
+    if (!el) return;
+    const id = Number(el.dataset.id);
+    const list = currentList();
+    if (!list) return;
+    if (el.dataset.action === 'toggle') {
+      const t = (list.tasks || []).find(t => t.id === id);
+      if (t) { t.done = !t.done; save(); render(); }
+    }
+    if (el.dataset.action === 'delete') {
+      list.tasks = (list.tasks || []).filter(t => t.id !== id);
+      save(); render();
+    }
+  });
+
+  function addTask() {
+    const input = document.getElementById('new-task');
+    const text = input.value.trim();
+    if (!text) return;
+    const priority = document.getElementById('new-priority').value;
+    const list = currentList();
+    if (!list) return;
+    if (!list.tasks) list.tasks = [];
+    list.tasks.unshift({ id: Date.now(), text, done: false, priority });
+    input.value = '';
+    save(); render();
+  }
+
+  document.getElementById('add-btn').addEventListener('click', addTask);
+  document.getElementById('new-task').addEventListener('keydown', e => { if (e.key === 'Enter') addTask(); });
+
+  document.querySelectorAll('.filter-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      filter = btn.dataset.filter;
+      document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active'); renderMain();
+    });
+  });
+
+  document.querySelectorAll('.prio-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      prioFilter = btn.dataset.prio;
+      document.querySelectorAll('.prio-btn').forEach(b => b.classList.remove('active-all','active-haute','active-normale','active-basse'));
+      btn.classList.add('active-' + prioFilter); renderMain();
+    });
+  });
+
+  document.getElementById('lists-menu').addEventListener('click', e => {
+    const delBtn = e.target.closest('[data-del-list]');
+    if (delBtn) {
+      e.stopPropagation();
+      const id = Number(delBtn.dataset.delList);
+      if (!confirm('Supprimer cette liste et toutes ses tâches ?')) return;
+      state.lists = state.lists.filter(l => l.id !== id);
+      if (state.currentId === id) state.currentId = state.lists[0]?.id || null;
+      save(); render(); return;
+    }
+    const item = e.target.closest('[data-list-id]');
+    if (item) {
+      state.currentId = Number(item.dataset.listId);
+      filter = 'all'; prioFilter = 'all';
+      document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+      document.querySelector('[data-filter="all"]').classList.add('active');
+      document.querySelectorAll('.prio-btn').forEach(b => b.classList.remove('active-all','active-haute','active-normale','active-basse'));
+      document.querySelector('[data-prio="all"]').classList.add('active-all');
+      document.getElementById('sidebar').classList.remove('open');
+      document.getElementById('sidebar-overlay').classList.remove('open');
+      render();
+    }
+  });
+
+  const modal = document.getElementById('modal');
+  document.getElementById('open-modal-btn').addEventListener('click', () => {
+    modal.classList.add('open');
+    document.getElementById('modal-input').value = '';
+    setTimeout(() => document.getElementById('modal-input').focus(), 50);
+  });
+  function closeModal() { modal.classList.remove('open'); }
+  document.getElementById('modal-cancel').addEventListener('click', closeModal);
+  modal.addEventListener('click', e => { if (e.target === modal) closeModal(); });
+
+  function createList() {
+    const name = document.getElementById('modal-input').value.trim();
+    if (!name) return;
+    const newId = Date.now();
+    state.lists.push({ id: newId, name, tasks: [] });
+    state.currentId = newId;
+    closeModal(); save(); render();
+  }
+  document.getElementById('modal-confirm').addEventListener('click', createList);
+  document.getElementById('modal-input').addEventListener('keydown', e => { if (e.key === 'Enter') createList(); });
+
+  const sidebarEl = document.getElementById('sidebar');
+  const sidebarOverlay = document.getElementById('sidebar-overlay');
+  document.getElementById('sidebar-toggle').addEventListener('click', () => {
+    sidebarEl.classList.toggle('open'); sidebarOverlay.classList.toggle('open');
+  });
+  sidebarOverlay.addEventListener('click', () => {
+    sidebarEl.classList.remove('open'); sidebarOverlay.classList.remove('open');
+  });
+
+  // ── AUTH ──
+  function showApp(user) {
+    currentUser = user;
+    document.getElementById('loading-screen').classList.remove('visible');
+    document.getElementById('login-screen').classList.remove('visible');
+    const name = user.displayName || user.email.split('@')[0];
+    document.getElementById('user-name').textContent = name;
+    const avatar = document.getElementById('user-avatar');
+    if (user.photoURL) {
+      avatar.innerHTML = `<img src="${user.photoURL}" alt="avatar">`;
+    } else {
+      avatar.textContent = name[0].toUpperCase();
+    }
+    document.getElementById('footer-txt').textContent = `Connecté en tant que ${user.email}`;
+    listenToDB(user.uid);
+  }
+
+  function showLogin() {
+    currentUser = null;
+    if (unsubscribeDB) { unsubscribeDB(); unsubscribeDB = null; }
+    document.getElementById('loading-screen').classList.remove('visible');
+    document.getElementById('login-screen').classList.add('visible');
+  }
+
+  onAuthStateChanged(auth, async user => {
+    if (user) {
+      // Écouter les données — si vide, créer liste par défaut
+      const r = userRef(user.uid);
+      onValue(r, snap => {
+        const data = snap.val();
+        if (!data || !data.state) {
+          state = { currentId: 1, lists: [{ id: 1, name: 'Ma liste', tasks: [] }] };
+          set(r, { state: JSON.stringify(state) });
+        } else {
+          state = JSON.parse(data.state);
+        }
+        render();
+      }, { onlyOnce: true });
+      showApp(user);
+    } else {
+      showLogin();
+    }
+  });
+
+  document.getElementById('btn-google-login').addEventListener('click', async () => {
+    const provider = new GoogleAuthProvider();
+    try { await signInWithPopup(auth, provider); }
+    catch(e) { document.getElementById('login-error').textContent = 'Connexion annulée.'; }
+  });
+
+  let isRegisterMode = false;
+  document.getElementById('toggle-register').addEventListener('click', () => {
+    isRegisterMode = !isRegisterMode;
+    document.getElementById('btn-email-login').textContent = isRegisterMode ? 'Créer un compte' : 'Se connecter';
+    document.getElementById('toggle-register').textContent = isRegisterMode ? "J'ai déjà un compte" : 'Créer un compte';
+    document.getElementById('toggle-register').previousSibling.textContent = isRegisterMode ? 'Déjà un compte ? ' : 'Pas de compte ? ';
+  });
+
+  document.getElementById('btn-email-login').addEventListener('click', async () => {
+    const email = document.getElementById('login-email').value.trim();
+    const password = document.getElementById('login-password').value;
+    const errEl = document.getElementById('login-error');
+    errEl.textContent = '';
+    if (!email || !password) { errEl.textContent = 'Remplissez tous les champs.'; return; }
+    try {
+      if (isRegisterMode) await createUserWithEmailAndPassword(auth, email, password);
+      else await signInWithEmailAndPassword(auth, email, password);
+    } catch(e) {
+      const msgs = { 'auth/user-not-found': 'Compte introuvable.', 'auth/wrong-password': 'Mot de passe incorrect.', 'auth/email-already-in-use': 'Email déjà utilisé.', 'auth/weak-password': 'Mot de passe trop court (6 caractères min).', 'auth/invalid-email': 'Email invalide.', 'auth/invalid-credential': 'Email ou mot de passe incorrect.' };
+      errEl.textContent = msgs[e.code] || 'Erreur : ' + e.code;
+    }
+  });
+
+  document.getElementById('btn-logout').addEventListener('click', async () => {
+    if (confirm('Se déconnecter ?')) await signOut(auth);
+  });
+</script>
+  import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+  import { getAuth, onAuthStateChanged, signInWithPopup, GoogleAuthProvider, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
+  import { getFirestore, doc, getDoc, setDoc, onSnapshot } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyDW3eHxSI0aiJUxeds3vb6czAPcFh0pnSc",
+    authDomain: "mes-taches-ef9ed.firebaseapp.com",
+    databaseURL: "https://mes-taches-ef9ed-default-rtdb.europe-west1.firebasedatabase.app",
+    projectId: "mes-taches-ef9ed",
+    storageBucket: "mes-taches-ef9ed.firebasestorage.app",
+    messagingSenderId: "355276583041",
+    appId: "1:355276583041:web:4da5e965ebe4fcd9055d80"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db = getFirestore(app);
+
+  // ── STATE ──
+  const PRIO_ORDER = { haute: 0, normale: 1, basse: 2 };
+  const PRIO_LABEL = { haute: 'Haute', normale: 'Normale', basse: 'Basse' };
+  let state = { currentId: null, lists: [] };
+  let filter = 'all', prioFilter = 'all';
+  let currentUser = null;
+  let unsubscribeSnapshot = null;
+  let saveTimeout = null;
+
+  // ── UTILS ──
+  function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  function currentList() { return state.lists.find(l => l.id === state.currentId); }
+
+  // ── ADDRESS DETECTION ──
+  const ADDR_TYPES = ['rue','ruelle','avenue','ave','boulevard','blvd','allée','allee','impasse','route','chemin','place','square','passage','cours','voie','quai','villa','résidence','residence','cité','cite','domaine','lotissement','hameau','rond-point','sentier','sente','montée','montee','descente','traverse','esplanade','promenade','parvis','mail','galerie','faubourg','fg','lieudit','lieu-dit','parc','chaussée','chaussee','port','digue','berge','levée','levee','clos','enclos','cour','carrière','carriere','venelle','drève','dreve','boucle','giratoire','bretelle','piste','rampe'].join('|');
+  const ADDR_RE = new RegExp('(\\d+[\\w,\\.\\-]*\\s+(?:' + ADDR_TYPES + ')[^\\n]{2,60})', 'gi');
+
+  function buildTaskNode(text) {
+    const span = document.createElement('span');
+    span.className = 'task-text';
+    const re = new RegExp(ADDR_RE.source, 'gi');
+    let last = 0, m;
+    while ((m = re.exec(text)) !== null) {
+      if (m.index > last) span.appendChild(document.createTextNode(text.slice(last, m.index)));
+      const a = document.createElement('a');
+      a.href = 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(m[0].trim());
+      a.target = '_blank'; a.rel = 'noopener noreferrer';
+      a.title = 'Voir sur Google Maps';
+      a.style.cssText = 'color:var(--accent);text-decoration:underline;text-underline-offset:3px;';
+      a.appendChild(document.createTextNode('📍 ' + m[0]));
+      span.appendChild(a);
+      last = re.lastIndex;
+    }
+    if (last < text.length) span.appendChild(document.createTextNode(text.slice(last)));
+    return span;
+  }
+
+  // ── FIRESTORE SYNC ──
+  function getUserDoc(uid) { return doc(db, 'users', uid); }
+
+  async function saveToFirestore() {
+    if (!currentUser) return;
+    setSyncStatus('Sauvegarde…');
+    try {
+      await setDoc(getUserDoc(currentUser.uid), { state: JSON.stringify(state) });
+      setSyncStatus('✓ Sauvegardé');
+      setTimeout(() => setSyncStatus(''), 2000);
+    } catch(e) { setSyncStatus('⚠ Erreur de sauvegarde'); }
+  }
+
+  function save() {
+    clearTimeout(saveTimeout);
+    saveTimeout = setTimeout(saveToFirestore, 800);
+  }
+
+  function setSyncStatus(msg) {
+    document.getElementById('sync-status').textContent = msg;
+  }
+
+  function listenToFirestore(uid) {
+    if (unsubscribeSnapshot) unsubscribeSnapshot();
+    unsubscribeSnapshot = onSnapshot(getUserDoc(uid), snap => {
+      if (snap.exists()) {
+        const remote = JSON.parse(snap.data().state || 'null');
+        if (remote) { state = remote; render(); }
+      }
+    });
+  }
+
+  // ── DATE ──
+  const days = ['Dimanche','Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi'];
+  const months = ['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre'];
+  const now = new Date();
+  document.getElementById('today-date').textContent = `${days[now.getDay()]} ${now.getDate()} ${months[now.getMonth()]} ${now.getFullYear()}`;
+
+  // ── RENDER ──
+  function renderSidebar() {
+    const menu = document.getElementById('lists-menu');
+    menu.innerHTML = state.lists.map(l => {
+      const remaining = l.tasks ? l.tasks.filter(t => !t.done).length : 0;
+      return `<div class="list-item ${l.id === state.currentId ? 'active' : ''}" data-list-id="${l.id}">
+        <div class="list-dot"></div>
+        <span class="list-name">${esc(l.name)}</span>
+        ${remaining > 0 ? `<span class="list-count">${remaining}</span>` : ''}
+        ${state.lists.length > 1 ? `<button class="list-del" data-del-list="${l.id}" aria-label="Supprimer">✕</button>` : ''}
+      </div>`;
+    }).join('');
+  }
+
+  function renderMain() {
+    const list = currentList();
+    if (!list) return;
+    const words = list.name.split(' ');
+    const last = words.pop();
+    document.getElementById('list-title').innerHTML = (words.length ? esc(words.join(' ')) + ' ' : '') + `<span>${esc(last)}</span>`;
+    const tasks = list.tasks || [];
+    const done = tasks.filter(t => t.done).length;
+    const total = tasks.length;
+    document.getElementById('stat-total').textContent = total;
+    document.getElementById('stat-done').textContent = done;
+    document.getElementById('stat-left').textContent = total - done;
+    document.getElementById('progress').style.width = total ? Math.round(done / total * 100) + '%' : '0%';
+
+    let filtered = tasks.filter(t => {
+      const matchStatus = filter === 'all' ? true : filter === 'done' ? t.done : !t.done;
+      const matchPrio = prioFilter === 'all' ? true : (t.priority || 'normale') === prioFilter;
+      return matchStatus && matchPrio;
+    });
+    filtered = [...filtered].sort((a, b) => PRIO_ORDER[a.priority || 'normale'] - PRIO_ORDER[b.priority || 'normale']);
+
+    const taskList = document.getElementById('task-list');
+    taskList.innerHTML = '';
+    if (!filtered.length) {
+      const empty = document.createElement('div');
+      empty.className = 'empty'; empty.textContent = 'Aucune tâche ici ✦';
+      taskList.appendChild(empty); return;
+    }
+    filtered.forEach(t => {
+      const prio = t.priority || 'normale';
+      const item = document.createElement('div');
+      item.className = `task-item prio-${prio}${t.done ? ' done' : ''}`;
+      const cb = document.createElement('div');
+      cb.className = 'checkbox' + (t.done ? ' checked' : '');
+      cb.dataset.action = 'toggle'; cb.dataset.id = t.id;
+      cb.innerHTML = `<svg width="12" height="10" viewBox="0 0 12 10" fill="none"><path d="M1 5L4.5 8.5L11 1" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+      const textNode = buildTaskNode(t.text);
+      if (t.done) textNode.style.cssText += 'text-decoration:line-through;color:var(--ink-muted);';
+      const badge = document.createElement('span');
+      badge.className = `badge badge-${prio}`; badge.textContent = PRIO_LABEL[prio];
+      const del = document.createElement('button');
+      del.className = 'del-btn'; del.dataset.action = 'delete'; del.dataset.id = t.id;
+      del.setAttribute('aria-label', 'Supprimer');
+      del.innerHTML = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>`;
+      item.appendChild(cb); item.appendChild(textNode); item.appendChild(badge); item.appendChild(del);
+      taskList.appendChild(item);
+    });
+  }
+
+  function render() { renderSidebar(); renderMain(); }
+
+  // ── TASK ACTIONS ──
+  document.getElementById('task-list').addEventListener('click', e => {
+    const el = e.target.closest('[data-action]');
+    if (!el) return;
+    const id = Number(el.dataset.id);
+    const list = currentList();
+    if (!list) return;
+    if (el.dataset.action === 'toggle') {
+      const t = list.tasks.find(t => t.id === id);
+      if (t) { t.done = !t.done; save(); render(); }
+    }
+    if (el.dataset.action === 'delete') {
+      list.tasks = list.tasks.filter(t => t.id !== id);
+      save(); render();
+    }
+  });
+
+  function addTask() {
+    const input = document.getElementById('new-task');
+    const text = input.value.trim();
+    if (!text) return;
+    const priority = document.getElementById('new-priority').value;
+    const list = currentList();
+    if (!list) return;
+    if (!list.tasks) list.tasks = [];
+    list.tasks.unshift({ id: Date.now(), text, done: false, priority });
+    input.value = '';
+    save(); render();
+  }
+
+  document.getElementById('add-btn').addEventListener('click', addTask);
+  document.getElementById('new-task').addEventListener('keydown', e => { if (e.key === 'Enter') addTask(); });
+
+  // Filters
+  document.querySelectorAll('.filter-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      filter = btn.dataset.filter;
+      document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active'); renderMain();
+    });
+  });
+
+  document.querySelectorAll('.prio-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      prioFilter = btn.dataset.prio;
+      document.querySelectorAll('.prio-btn').forEach(b => b.classList.remove('active-all','active-haute','active-normale','active-basse'));
+      btn.classList.add('active-' + prioFilter); renderMain();
+    });
+  });
+
+  // Sidebar lists
+  document.getElementById('lists-menu').addEventListener('click', e => {
+    const delBtn = e.target.closest('[data-del-list]');
+    if (delBtn) {
+      e.stopPropagation();
+      const id = Number(delBtn.dataset.delList);
+      if (!confirm('Supprimer cette liste et toutes ses tâches ?')) return;
+      state.lists = state.lists.filter(l => l.id !== id);
+      if (state.currentId === id) state.currentId = state.lists[0]?.id || null;
+      save(); render(); return;
+    }
+    const item = e.target.closest('[data-list-id]');
+    if (item) {
+      state.currentId = Number(item.dataset.listId);
+      filter = 'all'; prioFilter = 'all';
+      document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+      document.querySelector('[data-filter="all"]').classList.add('active');
+      document.querySelectorAll('.prio-btn').forEach(b => b.classList.remove('active-all','active-haute','active-normale','active-basse'));
+      document.querySelector('[data-prio="all"]').classList.add('active-all');
+      document.getElementById('sidebar').classList.remove('open');
+      document.getElementById('sidebar-overlay').classList.remove('open');
+      render();
+    }
+  });
+
+  // Modal nouvelle liste
+  const modal = document.getElementById('modal');
+  document.getElementById('open-modal-btn').addEventListener('click', () => {
+    modal.classList.add('open');
+    document.getElementById('modal-input').value = '';
+    setTimeout(() => document.getElementById('modal-input').focus(), 50);
+  });
+  function closeModal() { modal.classList.remove('open'); }
+  document.getElementById('modal-cancel').addEventListener('click', closeModal);
+  modal.addEventListener('click', e => { if (e.target === modal) closeModal(); });
+
+  function createList() {
+    const name = document.getElementById('modal-input').value.trim();
+    if (!name) return;
+    const newId = Date.now();
+    state.lists.push({ id: newId, name, tasks: [] });
+    state.currentId = newId;
+    closeModal(); save(); render();
+  }
+  document.getElementById('modal-confirm').addEventListener('click', createList);
+  document.getElementById('modal-input').addEventListener('keydown', e => { if (e.key === 'Enter') createList(); });
+
+  // Mobile sidebar
+  const sidebarEl = document.getElementById('sidebar');
+  const sidebarOverlay = document.getElementById('sidebar-overlay');
+  document.getElementById('sidebar-toggle').addEventListener('click', () => {
+    sidebarEl.classList.toggle('open'); sidebarOverlay.classList.toggle('open');
+  });
+  sidebarOverlay.addEventListener('click', () => {
+    sidebarEl.classList.remove('open'); sidebarOverlay.classList.remove('open');
+  });
+
+  // ── AUTH ──
+  function showApp(user) {
+    currentUser = user;
+    document.getElementById('loading-screen').classList.remove('visible');
+    document.getElementById('login-screen').classList.remove('visible');
+
+    // Afficher nom utilisateur
+    const name = user.displayName || user.email.split('@')[0];
+    document.getElementById('user-name').textContent = name;
+    const avatar = document.getElementById('user-avatar');
+    if (user.photoURL) {
+      avatar.innerHTML = `<img src="${user.photoURL}" alt="avatar">`;
+    } else {
+      avatar.textContent = name[0].toUpperCase();
+    }
+    document.getElementById('footer-txt').textContent = `Connecté en tant que ${user.email}`;
+
+    listenToFirestore(user.uid);
+  }
+
+  function showLogin() {
+    currentUser = null;
+    if (unsubscribeSnapshot) { unsubscribeSnapshot(); unsubscribeSnapshot = null; }
+    document.getElementById('loading-screen').classList.remove('visible');
+    document.getElementById('login-screen').classList.add('visible');
+  }
+
+  onAuthStateChanged(auth, async user => {
+    if (user) {
+      // Charger les données initiales
+      const snap = await getDoc(getUserDoc(user.uid));
+      if (snap.exists()) {
+        const remote = JSON.parse(snap.data().state || 'null');
+        if (remote) state = remote;
+      } else {
+        // Premier login : créer une liste par défaut
+        state = { currentId: 1, lists: [{ id: 1, name: 'Ma liste', tasks: [] }] };
+        await setDoc(getUserDoc(user.uid), { state: JSON.stringify(state) });
+      }
+      render();
+      showApp(user);
+    } else {
+      showLogin();
+    }
+  });
+
+  // Google login
+  document.getElementById('btn-google-login').addEventListener('click', async () => {
+    const provider = new GoogleAuthProvider();
+    try { await signInWithPopup(auth, provider); }
+    catch(e) { document.getElementById('login-error').textContent = 'Connexion annulée.'; }
+  });
+
+  // Email login / register
+  let isRegisterMode = false;
+  document.getElementById('toggle-register').addEventListener('click', () => {
+    isRegisterMode = !isRegisterMode;
+    const btn = document.getElementById('btn-email-login');
+    const toggle = document.getElementById('toggle-register');
+    btn.textContent = isRegisterMode ? 'Créer un compte' : 'Se connecter';
+    toggle.textContent = isRegisterMode ? 'J\'ai déjà un compte' : 'Créer un compte';
+    toggle.parentElement.firstChild.textContent = isRegisterMode ? 'Déjà un compte ? ' : 'Pas de compte ? ';
+  });
+
+  document.getElementById('btn-email-login').addEventListener('click', async () => {
+    const email = document.getElementById('login-email').value.trim();
+    const password = document.getElementById('login-password').value;
+    const errEl = document.getElementById('login-error');
+    errEl.textContent = '';
+    if (!email || !password) { errEl.textContent = 'Remplissez tous les champs.'; return; }
+    try {
+      if (isRegisterMode) { await createUserWithEmailAndPassword(auth, email, password); }
+      else { await signInWithEmailAndPassword(auth, email, password); }
+    } catch(e) {
+      const msgs = { 'auth/user-not-found': 'Compte introuvable.', 'auth/wrong-password': 'Mot de passe incorrect.', 'auth/email-already-in-use': 'Email déjà utilisé.', 'auth/weak-password': 'Mot de passe trop court (6 caractères min).', 'auth/invalid-email': 'Email invalide.' };
+      errEl.textContent = msgs[e.code] || 'Erreur de connexion.';
+    }
+  });
+
+  // Déconnexion
+  document.getElementById('btn-logout').addEventListener('click', async () => {
+    if (confirm('Se déconnecter ?')) { await signOut(auth); }
+  });
+</script>
+</body>
+</html>
